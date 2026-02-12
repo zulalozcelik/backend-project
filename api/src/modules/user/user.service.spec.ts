@@ -1,13 +1,31 @@
 import { Injectable } from '@nestjs/common';
-import { env } from './env';
+import { UserRepository } from './user.repository';
+import type { CreateUserDto } from './dto/create-user.dto';
+import type { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
-export class AppConfigService {
-  readonly databaseUrl = env.DATABASE_URL;
-  readonly jwtSecret = env.JWT_SECRET;
-  readonly redisUrl = env.REDIS_URL;
+export class UserService {
+  constructor(
+    private readonly userRepository: UserRepository,
+  ) {}
 
-  readonly swaggerUser = env.SWAGGER_USER;
-  readonly swaggerPassword = env.SWAGGER_PASSWORD;
-  readonly isProduction = env.NODE_ENV === 'production';
+  create(dto: CreateUserDto) {
+    return this.userRepository.create(dto);
+  }
+
+  findAll() {
+    return this.userRepository.findAll();
+  }
+
+  findOne(id: string) {
+    return this.userRepository.findById(id);
+  }
+
+  update(id: string, dto: UpdateUserDto) {
+    return this.userRepository.update(id, dto);
+  }
+
+  remove(id: string) {
+    return this.userRepository.softDelete(id);
+  }
 }

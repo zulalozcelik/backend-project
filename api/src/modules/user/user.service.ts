@@ -1,75 +1,31 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { CreateUserDto, createUserSchema } from './dto/create-user.dto';
-import { UpdateUserDto, updateUserSchema } from './dto/update-user.dto';
-import type { EnvironmentVariables } from '../../common/configs/env.type';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Injectable } from '@nestjs/common';
+import { UserRepository } from './user.repository';
+import type { CreateUserDto } from './dto/create-user.dto';
+import type { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
-  private users: User[] = [];
+  constructor(
+    private readonly userRepository: UserRepository,
+  ) {}
 
-  constructor(private readonly configService: ConfigService<EnvironmentVariables>) {}
-
-  findAll(): User[] {
-    return this.users;
+  create(dto: CreateUserDto) {
+    return this.userRepository.create(dto);
   }
 
-  findOne(id: string): User {
-    const user = this.users.find((u) => u.id === id);
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    return user;
+  findAll() {
+    return this.userRepository.findAll();
   }
 
-  create(data: CreateUserDto): User {
-    const validatedData = createUserSchema.parse(data);
-
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      name: validatedData.name,
-      email: validatedData.email,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    this.users.push(newUser);
-    return newUser;
+  findOne(id: string) {
+    return this.userRepository.findById(id);
   }
 
-  update(id: string, data: UpdateUserDto): User {
-    const user = this.findOne(id);
-    const validatedData = updateUserSchema.parse(data);
-
-    Object.assign(user, validatedData, {
-      updatedAt: new Date(),
-    });
-
-    return user;
+  update(id: string, dto: UpdateUserDto) {
+    return this.userRepository.update(id, dto);
   }
 
-  remove(id: string): { success: boolean; message: string } {
-    const index = this.users.findIndex((u) => u.id === id);
-
-    if (index === -1) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    this.users.splice(index, 1);
-
-    return {
-      success: true,
-      message: 'User deleted successfully',
-    };
+  remove(id: string) {
+    return this.userRepository.softDelete(id);
   }
 }
