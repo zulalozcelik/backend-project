@@ -1,52 +1,19 @@
 import { IGenericRepository } from './generic.repository.interface';
-import { eq, isNull } from 'drizzle-orm';
 
-export abstract class BaseRepository<T> implements IGenericRepository<T> {
-  protected constructor(
-    protected readonly db: any,
-    protected readonly table: any,
-  ) {}
+export abstract class BaseRepository<
+  T,
+  CreateDto,
+  UpdateDto
+> implements IGenericRepository<T, CreateDto, UpdateDto> {
 
-  async create(data: Partial<T>): Promise<T> {
-    const [result] = await this.db.insert(this.table).values(data).returning();
+  abstract create(data: CreateDto): Promise<T>;
 
-    return result;
-  }
+  abstract update(id: string, data: UpdateDto): Promise<T | null>;
 
-  async update(id: string, data: Partial<T>): Promise<T> {
-    const [result] = await this.db
-      .update(this.table)
-      .set(data)
-      .where(eq(this.table.id, id))
-      .returning();
+  abstract findById(id: string): Promise<T | null>;
 
-    return result;
-  }
+  abstract findAll(): Promise<T[]>;
 
-  async delete(id: string): Promise<void> {
-    await this.db.delete(this.table).where(eq(this.table.id, id));
-  }
-
-  async findById(id: string): Promise<T | null> {
-    const [result] = await this.db.select().from(this.table).where(eq(this.table.id, id));
-
-    return result ?? null;
-  }
-
-  async findAll(skip = 0, limit = 10): Promise<T[]> {
-    return this.db
-      .select()
-      .from(this.table)
-      .where(isNull(this.table.deletedAt))
-      .limit(limit)
-      .offset(skip);
-  }
-
-  async softDelete(id: string): Promise<void> {
-    await this.db.update(this.table).set({ deletedAt: new Date() }).where(eq(this.table.id, id));
-  }
-
-  async restore(id: string): Promise<void> {
-    await this.db.update(this.table).set({ deletedAt: null }).where(eq(this.table.id, id));
-  }
+  abstract softDelete(id: string): Promise<void>;
 }
+  
