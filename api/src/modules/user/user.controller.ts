@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
@@ -13,8 +13,11 @@ export class UserController {
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query('skip') skip?: string, @Query('limit') limit?: string) {
+    return this.userService.findAll(
+      skip ? Number(skip) : undefined,
+      limit ? Number(limit) : undefined,
+    );
   }
 
   @Get(':id')
@@ -30,5 +33,10 @@ export class UserController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.userService.restore(id);
   }
 }

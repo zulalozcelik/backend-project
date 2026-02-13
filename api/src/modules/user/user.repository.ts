@@ -2,17 +2,18 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { users } from '../../core/database/schema';
 import { BaseRepository } from '../../core/database/base.repository';
+import type { PaginationParams } from '../../core/database/generic.repository.interface';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
 import type { InferSelectModel } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import * as schema from '../../core/database/schema';
 
 type User = InferSelectModel<typeof users>;
 
 @Injectable()
-export class UserRepository
-  extends BaseRepository<User, CreateUserDto, UpdateUserDto> {
-
-  constructor(@Inject('DRIZZLE') private readonly db: any) {
+export class UserRepository extends BaseRepository<User, CreateUserDto, UpdateUserDto> {
+  constructor(@Inject('DRIZZLE') private readonly db: PostgresJsDatabase<typeof schema>) {
     super();
   }
 
@@ -27,15 +28,22 @@ export class UserRepository
     return user;
   }
 
-  async findAll(): Promise<User[]> {
-    return this.db.select().from(users);
+  async findAll(params?: PaginationParams): Promise<User[]> {
+    const query = this.db.select().from(users);
+
+    if (params?.limit) {
+      query.limit(params.limit);
+    }
+
+    if (params?.skip) {
+      query.offset(params.skip);
+    }
+
+    return query;
   }
 
   async findById(id: string): Promise<User | null> {
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.id, id));
+    const [user] = await this.db.select().from(users).where(eq(users.id, id));
 
     return user ?? null;
   }
@@ -60,5 +68,20 @@ export class UserRepository
         deletedAt: new Date(),
       })
       .where(eq(users.id, id));
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({
+        deletedAt: null,
+      })
+      .where(eq(users.id, id));
+  }
+
+  async withTransaction<R>(fn: (tx: PostgresJsDatabase<typeof schema>) => Promise<R>): Promise<R> {
+    return this.db.transaction(async (tx) => {
+      return fn(tx);
+    });
   }
 }

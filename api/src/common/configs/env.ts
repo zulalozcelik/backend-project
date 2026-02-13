@@ -1,3 +1,15 @@
-import { envSchema } from './env.schema';
+import { z } from 'zod';
 
-export const env = envSchema.parse(process.env);
+const envSchema = z.object({
+  DATABASE_URL: z.string(),
+  JWT_SECRET: z.string(),
+  REDIS_URL: z.string(),
+  SWAGGER_USER: z.string(),
+  SWAGGER_PASSWORD: z.string(),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+export function validate(config: Record<string, unknown>): Env {
+  return envSchema.parse(config);
+}

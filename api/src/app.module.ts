@@ -5,15 +5,16 @@ import { HealthController } from './health/health.controller';
 import { UserModule } from './modules/user/user.module';
 import { DummyUserMiddleware } from './common/middleware/dummy-user.middleware';
 import { MiddlewareConsumer } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config'; 
-import { env } from './common/configs/env';
+import { ConfigModule } from '@nestjs/config';
+import { validate } from './common/configs/env';
 import { DatabaseModule } from './core/database/database.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [() => env],
+      envFilePath: '../.env',
+      validate,
     }),
     UserModule,
     DatabaseModule,

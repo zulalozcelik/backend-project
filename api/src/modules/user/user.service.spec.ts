@@ -5,9 +5,7 @@ import type { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   create(dto: CreateUserDto) {
     return this.userRepository.create(dto);
