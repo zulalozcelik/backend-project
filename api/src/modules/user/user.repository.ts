@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { users } from '../../core/database/schema';
 import { BaseRepository } from '../../core/database/base.repository';
 import type { PaginationParams } from '../../core/database/generic.repository.interface';
@@ -84,4 +84,24 @@ export class UserRepository extends BaseRepository<User, CreateUserDto, UpdateUs
       return fn(tx);
     });
   }
+  async findByEmail(email: string) {
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), isNull(users.deletedAt)))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  async findAuthByEmail(email: string) {
+    const rows = await this.db
+      .select({ id: users.id, password: users.password })
+      .from(users)
+      .where(and(eq(users.email, email), isNull(users.deletedAt)))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
 }

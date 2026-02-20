@@ -1,8 +1,4 @@
-import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
+import { userInsertSchema } from './user.zod.js';
 
-export const createUserSchema = z.object({
-  name: z.string().min(2).max(100),
-  email: z.string().email().toLowerCase(),
-});
-
-export type CreateUserDto = z.infer<typeof createUserSchema>;
+export class CreateUserDto extends createZodDto(userInsertSchema) { }

@@ -1,6 +1,4 @@
-import { z } from 'zod';
-import { createUserSchema } from './create-user.dto';
+import { createZodDto } from 'nestjs-zod';
+import { userUpdateSchema } from './user.zod.js';
 
-export const updateUserSchema = createUserSchema.partial();
-
-export type UpdateUserDto = z.infer<typeof updateUserSchema>;
+export class UpdateUserDto extends createZodDto(userUpdateSchema) { }

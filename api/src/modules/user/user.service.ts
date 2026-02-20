@@ -1,16 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IGenericRepository } from '../../core/database/generic.repository.interface';
+import type { IUserRepository } from './user.repository.interface';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
-import type { User } from './entities/user.entity';
 import { Email } from './value-objects/email.value-object';
 
 @Injectable()
 export class UserService {
   constructor(
     @Inject('USER_REPOSITORY')
-    private readonly userRepository: IGenericRepository<User, CreateUserDto, UpdateUserDto>,
-  ) {}
+    private readonly userRepository: IUserRepository,
+  ) { }
 
   create(dto: CreateUserDto) {
     // Email value object ile validasyon + transaction örneği
@@ -38,5 +37,12 @@ export class UserService {
 
   restore(id: string) {
     return this.userRepository.restore(id);
+  }
+  async findByEmail(email: string) {
+    return this.userRepository.findByEmail(email);
+  }
+
+  async findAuthByEmail(email: string) {
+    return this.userRepository.findAuthByEmail(email);
   }
 }
