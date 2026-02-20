@@ -8,6 +8,7 @@ import { MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validate } from './common/configs/env';
 import { DatabaseModule } from './core/database/database.module';
+import { TestModule } from './modules/test/test.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DatabaseModule } from './core/database/database.module';
     }),
     UserModule,
     DatabaseModule,
+    TestModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
