@@ -1,19 +1,47 @@
-import { NestFactory } from '@nestjs/core';
-import { HttpAdapterHost } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { JsonLoggerService } from './common/logging/json-logger.service';
+import { buildSwaggerConfig } from './common/swagger/swagger.config';
+import { protectSwaggerWithBasicAuth } from './common/swagger/swagger.basic-auth';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
 
-  const httpAdapterHost = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new GlobalExceptionFilter(httpAdapterHost));
+  const adapterHost = app.get(HttpAdapterHost);
+  const logger = app.get(JsonLoggerService);
+  const config = app.get(ConfigService);
+
+  app.useGlobalFilters(new GlobalExceptionFilter(adapterHost, logger));
+  app.useGlobalInterceptors(new LoggingInterceptor(logger));
   app.useGlobalPipes(new ZodValidationPipe());
+
+  const nodeEnv = config.get<string>('NODE_ENV') ?? 'development';
+  const isProd = nodeEnv === 'production';
+  const docsPath = '/docs';
+
+  const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+  SwaggerModule.setup(docsPath, app, document, {
+    swaggerOptions: { persistAuthorization: true },
+  });
+
+  if (isProd) {
+    const swaggerUser = config.get<string>('SWAGGER_USER') ?? '';
+    const swaggerPass = config.get<string>('SWAGGER_PASSWORD') ?? '';
+
+    if (!swaggerUser || !swaggerPass) {
+      throw new Error('SWAGGER_USER / SWAGGER_PASSWORD missing in production');
+    }
+
+    await protectSwaggerWithBasicAuth({ app, username: swaggerUser, password: swaggerPass, docsPath });
+  }
 
   await app.listen(3000, '0.0.0.0');
 }
 
 void bootstrap();
-

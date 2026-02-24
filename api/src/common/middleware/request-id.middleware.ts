@@ -10,7 +10,10 @@ export class RequestIdMiddleware implements NestMiddleware {
         req.requestId = id;
 
         // response header'ına yaz — client tarafında tracing için
-        res.header('x-request-id', id);
+        // res.setHeader() → Node.js native HTTP metodu.
+        // Middleware context'inde res, Fastify reply DEĞİL raw ServerResponse'dur.
+        // Bu yüzden Fastify'a özgü res.header() değil, Node.js standardı setHeader() kullanıyoruz.
+        res.setHeader('x-request-id', id);
 
         next();
     }

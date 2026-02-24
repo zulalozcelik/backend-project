@@ -1,83 +1,78 @@
 import {
+    ArgumentsHost,
     Catch,
     ExceptionFilter,
     HttpException,
     HttpStatus,
-    Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { ZodError } from 'zod';
-
 import { BaseAppException } from '../exceptions/base-app.exception';
+import { JsonLoggerService } from '../logging/json-logger.service';
 
 type ErrorResponse = {
-    type: string;
+    statusCode: number;
     error: string;
     message: string;
     timestamp: string;
     path: string;
-    statusCode: number;
-    stack?: string;
-    details?: Record<string, unknown> | Record<string, unknown>[];
+    requestId?: string;
+    details?: unknown;
 };
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-    private readonly logger = new Logger(GlobalExceptionFilter.name);
+    constructor(
+        private readonly httpAdapterHost: HttpAdapterHost,
+        private readonly logger: JsonLoggerService,
+    ) { }
 
-    constructor(private readonly httpAdapterHost: HttpAdapterHost) { }
-
-    catch(exception: unknown, host: import('@nestjs/common').ArgumentsHost): void {
+    catch(exception: unknown, host: ArgumentsHost): void {
         const { httpAdapter } = this.httpAdapterHost;
         const ctx = host.switchToHttp();
+        const req = ctx.getRequest<any>();
+        const res = ctx.getResponse<any>();
 
-        const request = ctx.getRequest();
-        const response = ctx.getResponse();
-
-        const path =
-            typeof httpAdapter.getRequestUrl === 'function'
-                ? httpAdapter.getRequestUrl(request)
-                : request?.url ?? 'unknown';
-
+        const path = req?.url ?? 'unknown';
+        const requestId = req?.requestId;
         const timestamp = new Date().toISOString();
         const isProduction = process.env.NODE_ENV === 'production';
 
         const normalized = this.normalizeException(exception);
+        const level = normalized.statusCode >= 500 ? 'error' : 'warn';
+
+        this.logger[level]('http_exception', 'GlobalExceptionFilter', {
+            requestId,
+            path,
+            statusCode: normalized.statusCode,
+            error: normalized.error,
+            message: normalized.message,
+            ...(normalized.details ? { details: normalized.details } : {}),
+            ...(!isProduction && normalized.stack ? { stack: normalized.stack } : {}),
+        });
 
         const body: ErrorResponse = {
-            type: normalized.type,
+            statusCode: normalized.statusCode,
             error: normalized.error,
             message: normalized.message,
             timestamp,
             path,
-            statusCode: normalized.statusCode,
+            ...(requestId ? { requestId } : {}),
             ...(normalized.details ? { details: normalized.details } : {}),
-            ...(!isProduction && normalized.stack ? { stack: normalized.stack } : {}),
         };
 
-        // ✅ Log all errors
-        this.logger.error(
-            `${normalized.statusCode} ${path} - ${normalized.error}: ${normalized.message}`,
-            normalized.stack,
-        );
-
-        // ✅ Works for Fastify + Express
-        httpAdapter.reply(response, body, normalized.statusCode);
+        httpAdapter.reply(res, body, normalized.statusCode);
     }
 
     private normalizeException(exception: unknown): {
-        type: string;
         error: string;
         message: string;
         statusCode: number;
         stack?: string;
-        details?: Record<string, unknown> | Record<string, unknown>[];
+        details?: unknown;
     } {
-        // 0) nestjs-zod: ZodValidationException → VALIDATION_ERROR
-        if (
-            exception instanceof Error &&
-            exception.name === 'ZodValidationException'
-        ) {
+        // 1) ZodValidationException (nestjs-zod pipe)
+        if (exception instanceof Error && exception.name === 'ZodValidationException') {
             const resBody =
                 typeof (exception as any).getResponse === 'function'
                     ? (exception as any).getResponse()
@@ -86,23 +81,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             const issues =
                 (resBody as any)?.issues ??
                 (resBody as any)?.errors ??
-                (exception as any)?.issues ??
                 (exception as any)?.zodError?.issues ??
                 [];
 
             const details = Array.isArray(issues)
-                ? issues.map((issue: any) => ({
-                    field: Array.isArray(issue.path)
-                        ? issue.path.join('.')
-                        : issue.path ?? '',
-                    message: issue.message ?? 'Invalid value',
-                    code: issue.code ?? 'invalid',
+                ? issues.map((i: any) => ({
+                    field: Array.isArray(i.path) ? i.path.join('.') : i.path ?? '',
+                    message: i.message ?? 'Invalid value',
+                    code: i.code ?? 'invalid',
                 }))
                 : [];
 
             return {
-                type: 'VALIDATION_ERROR',
-                error: 'ZodValidationException',
+                error: 'VALIDATION_ERROR',
                 message: 'Validation failed',
                 statusCode: HttpStatus.BAD_REQUEST,
                 stack: exception.stack,
@@ -110,17 +101,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             };
         }
 
-        // 1) Zod validation hatalari (direkt ZodError gelirse)
+        // 2) Direct ZodError
         if (exception instanceof ZodError) {
-            const details = exception.issues.map((issue) => ({
-                field: issue.path.join('.'),
-                message: issue.message,
-                code: issue.code,
+            const details = exception.issues.map((i) => ({
+                field: i.path.join('.'),
+                message: i.message,
+                code: i.code,
             }));
 
             return {
-                type: 'VALIDATION_ERROR',
-                error: 'ZodError',
+                error: 'VALIDATION_ERROR',
                 message: 'Validation failed',
                 statusCode: HttpStatus.BAD_REQUEST,
                 stack: exception.stack,
@@ -128,11 +118,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             };
         }
 
-        // 2) Bizim custom exception'larimiz
+        // 3) Our custom exceptions (AuthorizationError, AuthenticationError etc.)
         if (exception instanceof BaseAppException) {
             return {
-                type: exception.type,
-                error: exception.error,
+                error: exception.type,
                 message: exception.message,
                 statusCode: exception.statusCode,
                 stack: exception.stack,
@@ -140,46 +129,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             };
         }
 
-        // 3) Nest HttpException (ValidationPipe vs.)
+        // 4) NestJS built-in HttpException
         if (exception instanceof HttpException) {
             const statusCode = exception.getStatus();
             const response = exception.getResponse();
-
-            const message =
+            const msg =
                 typeof response === 'string'
                     ? response
-                    : (response as { message?: unknown }).message;
+                    : (response as any)?.message ?? exception.message;
 
             return {
-                type: 'HTTP_EXCEPTION',
                 error: exception.name,
-                message:
-                    typeof message === 'string'
-                        ? message
-                        : Array.isArray(message)
-                            ? message.join(', ')
-                            : exception.message,
+                message: Array.isArray(msg) ? msg.join(', ') : msg,
                 statusCode,
                 stack: exception.stack,
             };
         }
 
-        // 4) Unknown
-        if (exception instanceof Error) {
-            return {
-                type: 'INTERNAL_SERVER_ERROR',
-                error: exception.name,
-                message: exception.message || 'Unexpected error',
-                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                stack: exception.stack,
-            };
-        }
-
+        // 5) Unknown error
+        const e = exception as Error | undefined;
         return {
-            type: 'INTERNAL_SERVER_ERROR',
-            error: 'UnknownError',
-            message: 'Unexpected error',
+            error: e?.name ?? 'INTERNAL_SERVER_ERROR',
+            message: e?.message ?? 'Internal server error',
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            stack: e?.stack,
         };
     }
 }
