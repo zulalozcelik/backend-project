@@ -29,6 +29,10 @@ export class RedisService implements OnModuleDestroy {
         return this.redis.ttl(key);
     }
 
+    del(key: string): Promise<number> {
+        return this.redis.del(key);
+    }
+
     async eval<T = unknown>(
         script: string,
         keys: string[],

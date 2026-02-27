@@ -10,12 +10,18 @@ import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RateLimit } from '@/common/decorators/rate-limit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { JwtUser } from '@/common/decorators/current-user.decorator';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UserResponseDto } from './dto/user-response.dto';
-import { ErrorResponseDto } from '../../common/swagger/error-response.dto';
 import { errorExamples } from '../../common/swagger/error-examples';
+import { Cacheable } from '../cache/cacheable.decorator';
+
+// NOT: @ApiResponse'da type: ve schema: birlikte kullanılmaz.
+// İkisi birlikte kullanılınca Swagger onları merge eder ve DTO'daki
+// example'sız number field'ı 0 olarak gösterir.
+// Bu yüzden tüm hata response'larında SADECE schema: { example } kullanıyoruz.
 
 @ApiTags('users')
 @Controller('users')
@@ -38,10 +44,10 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 201, description: 'User created', type: UserResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error', type: ErrorResponseDto, schema: { example: errorExamples.badRequest } })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
-  create(@Body() dto: CreateUserDto) {
-    return this.userService.create(dto);
+  @ApiResponse({ status: 400, description: 'Validation error', schema: { example: errorExamples.badRequest } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  create(@Body() dto: CreateUserDto, @CurrentUser() user?: JwtUser) {
+    return this.userService.create(dto, user?.id);
   }
 
   // ─── GET /users ──────────────────────────────────────────────────────────────
@@ -49,7 +55,7 @@ export class UserController {
   @ApiQuery({ name: 'skip', required: false, example: 0 })
   @ApiQuery({ name: 'limit', required: false, example: 20 })
   @ApiResponse({ status: 200, description: 'List of users', type: [UserResponseDto] })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
   findAll(@Query('skip') skip?: string, @Query('limit') limit?: string) {
     return this.userService.findAll(
       skip ? Number(skip) : undefined,
@@ -63,19 +69,20 @@ export class UserController {
   @RateLimit({ limit: 100, window: 60 })
   @ApiBearerAuth('bearer')
   @ApiResponse({ status: 200, description: 'Current authenticated user', type: UserResponseDto })
-  @ApiResponse({ status: 401, description: 'Authentication error', type: ErrorResponseDto, schema: { example: errorExamples.unauthorized } })
-  @ApiResponse({ status: 429, description: 'Rate limit exceeded', type: ErrorResponseDto, schema: { example: errorExamples.tooManyRequests } })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+  @ApiResponse({ status: 401, description: 'Authentication error', schema: { example: errorExamples.unauthorized } })
+  @ApiResponse({ status: 429, description: 'Rate limit exceeded', schema: { example: errorExamples.tooManyRequests } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
   me(@CurrentUser() user: any) {
     return { data: user };
   }
 
   // ─── GET /users/:id ──────────────────────────────────────────────────────────
   @Get(':id')
+  @Cacheable(60) // Cache for 60 seconds. Key: users:<id>
   @ApiParam({ name: 'id', example: '8a76aee9-0785-48c6-8b64-a3aa55189dfb' })
   @ApiResponse({ status: 200, description: 'User by ID', type: UserResponseDto })
-  @ApiResponse({ status: 404, description: 'User not found', type: ErrorResponseDto, schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
@@ -94,11 +101,11 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 200, description: 'User updated', type: UserResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error', type: ErrorResponseDto, schema: { example: errorExamples.badRequest } })
-  @ApiResponse({ status: 404, description: 'User not found', type: ErrorResponseDto, schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.userService.update(id, dto);
+  @ApiResponse({ status: 400, description: 'Validation error', schema: { example: errorExamples.badRequest } })
+  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() user?: JwtUser) {
+    return this.userService.update(id, dto, user?.id);
   }
 
   // ─── DELETE /users/:id ───────────────────────────────────────────────────────
@@ -108,10 +115,10 @@ export class UserController {
   @ApiBearerAuth('bearer')
   @ApiParam({ name: 'id', example: '8a76aee9-0785-48c6-8b64-a3aa55189dfb' })
   @ApiResponse({ status: 200, description: 'User deleted', schema: { example: { data: { deleted: true } } } })
-  @ApiResponse({ status: 401, description: 'Authentication error', type: ErrorResponseDto, schema: { example: errorExamples.unauthorized } })
-  @ApiResponse({ status: 403, description: 'Admin role required', type: ErrorResponseDto, schema: { example: errorExamples.forbidden } })
-  @ApiResponse({ status: 404, description: 'User not found', type: ErrorResponseDto, schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+  @ApiResponse({ status: 401, description: 'Authentication error', schema: { example: errorExamples.unauthorized } })
+  @ApiResponse({ status: 403, description: 'Admin role required', schema: { example: errorExamples.forbidden } })
+  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
   async remove(@Param('id') id: string) {
     await this.userService.remove(id);
     return { data: { deleted: true } };
@@ -124,10 +131,10 @@ export class UserController {
   @ApiBearerAuth('bearer')
   @ApiParam({ name: 'id', example: '8a76aee9-0785-48c6-8b64-a3aa55189dfb' })
   @ApiResponse({ status: 200, description: 'User restored', type: UserResponseDto })
-  @ApiResponse({ status: 401, description: 'Authentication error', type: ErrorResponseDto, schema: { example: errorExamples.unauthorized } })
-  @ApiResponse({ status: 403, description: 'Admin role required', type: ErrorResponseDto, schema: { example: errorExamples.forbidden } })
-  @ApiResponse({ status: 404, description: 'User not found', type: ErrorResponseDto, schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+  @ApiResponse({ status: 401, description: 'Authentication error', schema: { example: errorExamples.unauthorized } })
+  @ApiResponse({ status: 403, description: 'Admin role required', schema: { example: errorExamples.forbidden } })
+  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
+  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
   restore(@Param('id') id: string) {
     return this.userService.restore(id);
   }

@@ -1,29 +1,75 @@
-import { Injectable } from '@nestjs/common';
-import { UserRepository } from './user.repository';
-import type { CreateUserDto } from './dto/create-user.dto';
-import type { UpdateUserDto } from './dto/update-user.dto';
+import { Test, TestingModule } from '@nestjs/testing';
+import { UserService } from './user.service';
+import { EventBusService } from '../../common/events/event-bus.service';
 
-@Injectable()
-export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+const mockRepo = {
+  create: jest.fn(),
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn(),
+  softDelete: jest.fn(),
+  restore: jest.fn(),
+  findByEmail: jest.fn(),
+  findAuthByEmail: jest.fn(),
+  withTransaction: jest.fn((fn: () => Promise<unknown>) => fn()),
+};
 
-  create(dto: CreateUserDto) {
-    return this.userRepository.create(dto);
-  }
+const mockEventBus = { emit: jest.fn(), on: jest.fn() };
 
-  findAll() {
-    return this.userRepository.findAll();
-  }
+describe('UserService', () => {
+  let service: UserService;
 
-  findOne(id: string) {
-    return this.userRepository.findById(id);
-  }
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UserService,
+        { provide: 'USER_REPOSITORY', useValue: mockRepo },
+        { provide: EventBusService, useValue: mockEventBus },
+      ],
+    }).compile();
 
-  update(id: string, dto: UpdateUserDto) {
-    return this.userRepository.update(id, dto);
-  }
+    service = module.get<UserService>(UserService);
+    jest.clearAllMocks();
+  });
 
-  remove(id: string) {
-    return this.userRepository.softDelete(id);
-  }
-}
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('findAll should delegate to repository', async () => {
+    mockRepo.findAll.mockResolvedValue([]);
+    await service.findAll(0, 10);
+    expect(mockRepo.findAll).toHaveBeenCalledWith({ skip: 0, limit: 10 });
+  });
+
+  it('findOne should delegate to repository', async () => {
+    mockRepo.findById.mockResolvedValue(null);
+    await service.findOne('some-id');
+    expect(mockRepo.findById).toHaveBeenCalledWith('some-id');
+  });
+
+  it('findOneForAudit should return the user object', async () => {
+    const user = { id: 'u1', name: 'Test' };
+    mockRepo.findById.mockResolvedValue(user);
+    const result = await service.findOneForAudit('u1');
+    expect(result).toEqual(user);
+  });
+
+  it('update should emit UserUpdatedEvent on success', async () => {
+    const old = { id: 'u1', name: 'Old' };
+    const updated = { id: 'u1', name: 'New' };
+    mockRepo.findById.mockResolvedValue(old);
+    mockRepo.update.mockResolvedValue(updated);
+    await service.update('u1', { name: 'New' }, 'admin-id');
+    expect(mockEventBus.emit).toHaveBeenCalledWith(
+      'user.updated',
+      expect.objectContaining({ entityId: 'u1', performedBy: 'admin-id' }),
+    );
+  });
+
+  it('remove should call softDelete', async () => {
+    mockRepo.softDelete.mockResolvedValue(undefined);
+    await service.remove('u1');
+    expect(mockRepo.softDelete).toHaveBeenCalledWith('u1');
+  });
+});

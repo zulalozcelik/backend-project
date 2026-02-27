@@ -1,6 +1,4 @@
-// Swagger @ApiResponse schema: { example: ... } için hazır örnek değerler.
-// Her status kodu için doğru statusCode içeriyor.
-// Controller'larda tek tek yazmak yerine buradan import edilir.
+
 export const errorExamples = {
     badRequest: {
         statusCode: 400,

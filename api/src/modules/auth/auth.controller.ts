@@ -3,7 +3,6 @@ import { ApiTags, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { ErrorResponseDto } from '../../common/swagger/error-response.dto';
 import { errorExamples } from '../../common/swagger/error-examples';
 
 @ApiTags('auth')
@@ -30,8 +29,8 @@ export class AuthController {
         description: 'User registered successfully',
         schema: { example: { data: { accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' } } },
     })
-    @ApiResponse({ status: 400, description: 'Validation error', type: ErrorResponseDto, schema: { example: errorExamples.badRequest } })
-    @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+    @ApiResponse({ status: 400, description: 'Validation error', schema: { example: errorExamples.badRequest } })
+    @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
     register(@Body() dto: RegisterDto) {
         return this.authService.register(dto);
     }
@@ -53,9 +52,9 @@ export class AuthController {
         description: 'Login successful',
         schema: { example: { data: { accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' } } },
     })
-    @ApiResponse({ status: 400, description: 'Validation error', type: ErrorResponseDto, schema: { example: errorExamples.badRequest } })
-    @ApiResponse({ status: 401, description: 'Invalid credentials', type: ErrorResponseDto, schema: { example: errorExamples.unauthorized } })
-    @ApiResponse({ status: 500, description: 'Internal server error', type: ErrorResponseDto, schema: { example: errorExamples.internal } })
+    @ApiResponse({ status: 400, description: 'Validation error', schema: { example: errorExamples.badRequest } })
+    @ApiResponse({ status: 401, description: 'Invalid credentials', schema: { example: errorExamples.unauthorized } })
+    @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
     login(@Body() dto: LoginDto) {
         return this.authService.login(dto);
     }

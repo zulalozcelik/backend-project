@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ErrorResponseDto {
-    // example burada VERİLMEDİ → Her @ApiResponse kendi schema: { example } değerini taşır.
-    // Böylece 400 satırında statusCode:400, 500 satırında statusCode:500 görünür.
+
     @ApiProperty({ description: 'HTTP status code' })
     statusCode!: number;
 
