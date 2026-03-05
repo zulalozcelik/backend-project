@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>WS Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+    <h3>WebSocket Test</h3>
+    <pre id="log"></pre>
+
+    <script>
+        const logEl = document.getElementById("log");
+        const log = (m) => (logEl.textContent += m + "\n");
+
+        const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3N2JlYmJjYi0xOGFmLTRmZmEtOWY1NC1lZjU5NjU0ZWI2MjIiLCJpYXQiOjE3NzIxODM4NjksImV4cCI6MTc3MjE4NDc2OX0.kr9wRG2vWArkg7IKAOvGlPW1ffWjnudPfU2CKmS9NnU";
+        const DOCUMENT_ID = "123";
+
+        const socket = io("http://localhost:3000", {
+            auth: { token: TOKEN }
+        });
+
+        socket.on("connect", () => {
+            log("connected: " + socket.id);
+            socket.emit("join-document", DOCUMENT_ID);
+            log("joined room: document:" + DOCUMENT_ID);
+        });
+
+        socket.on("connect_error", (err) => {
+            log("connect_error: " + err.message);
+        });
+
+        socket.on("disconnect", (reason) => {
+            log("disconnected: " + reason);
+        });
+
+        socket.on("document-updated", (data) => {
+            log("document-updated: " + JSON.stringify(data));
+        });
+    </script>
+</body>
+
+</html>

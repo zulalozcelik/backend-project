@@ -19,6 +19,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { DummyUserMiddleware } from './common/middleware/dummy-user.middleware';
 import { QueueModule } from './queue/queue.module';
 import { ReportModule } from './modules/report/report.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ReportModule } from './modules/report/report.module';
     NotificationsModule,
     QueueModule,
     ReportModule,
+    RealtimeModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

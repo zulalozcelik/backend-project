@@ -4,8 +4,10 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Param,
     Post,
 } from '@nestjs/common';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { z } from 'zod';
 
 import { BusinessRuleError } from '../../common/exceptions/business-rule.error';
@@ -23,6 +25,7 @@ type FailFastBody = z.infer<typeof failFastSchema>;
 
 @Controller('test')
 export class TestController {
+    constructor(private readonly realtime: RealtimeGateway) { }
     // ✅ 200
     @Get('ok')
     @HttpCode(HttpStatus.OK)
@@ -82,5 +85,19 @@ export class TestController {
     serverError() {
         // bilinmeyen hata → filter 500 döndürmeli
         throw new Error('Unexpected crash');
+    }
+
+    // 📡 WebSocket broadcast testi
+    @Post('broadcast/:documentId')
+    @HttpCode(HttpStatus.OK)
+    broadcast(
+        @Param('documentId') documentId: string,
+        @Body() body: unknown,
+    ) {
+        this.realtime.broadcastToDocument(documentId, 'document-updated', {
+            documentId,
+            data: body,
+        });
+        return { broadcasted: true, documentId };
     }
 }
