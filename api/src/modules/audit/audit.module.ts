@@ -9,19 +9,19 @@ import { LoggingModule } from '../../common/logging/logging.module';
 import { UserModule } from '../user/user.module';
 
 @Module({
-    imports: [
-        LoggingModule,
-        UserModule,
-        MongooseModule.forFeature([{ name: AuditLog.name, schema: AuditLogSchema }]),
-    ],
-    controllers: [AuditAdminController],
-    providers: [
-        AuditService,
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: AuditInterceptor,
-        },
-    ],
-    exports: [AuditService],
+  imports: [
+    LoggingModule,
+    UserModule,
+    MongooseModule.forFeature([{ name: AuditLog.name, schema: AuditLogSchema }]),
+  ],
+  controllers: [AuditAdminController],
+  providers: [
+    AuditService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+  ],
+  exports: [AuditService],
 })
-export class AuditModule { }
+export class AuditModule {}

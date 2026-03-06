@@ -103,5 +103,4 @@ export class UserRepository extends BaseRepository<User, CreateUserDto, UpdateUs
 
     return rows[0] ?? null;
   }
-
 }

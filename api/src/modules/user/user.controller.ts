@@ -1,9 +1,15 @@
 import {
-  Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import {
-  ApiTags, ApiBearerAuth, ApiBody, ApiResponse, ApiParam, ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiBody, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
@@ -26,7 +32,7 @@ import { Cacheable } from '../cache/cacheable.decorator';
 @ApiTags('users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   // ─── POST /users ─────────────────────────────────────────────────────────────
   @Post()
@@ -44,8 +50,16 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 201, description: 'User created', type: UserResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error', schema: { example: errorExamples.badRequest } })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+    schema: { example: errorExamples.badRequest },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
   create(@Body() dto: CreateUserDto, @CurrentUser() user?: JwtUser) {
     return this.userService.create(dto, user?.id);
   }
@@ -55,7 +69,11 @@ export class UserController {
   @ApiQuery({ name: 'skip', required: false, example: 0 })
   @ApiQuery({ name: 'limit', required: false, example: 20 })
   @ApiResponse({ status: 200, description: 'List of users', type: [UserResponseDto] })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
   findAll(@Query('skip') skip?: string, @Query('limit') limit?: string) {
     return this.userService.findAll(
       skip ? Number(skip) : undefined,
@@ -69,10 +87,22 @@ export class UserController {
   @RateLimit({ limit: 100, window: 60 })
   @ApiBearerAuth('bearer')
   @ApiResponse({ status: 200, description: 'Current authenticated user', type: UserResponseDto })
-  @ApiResponse({ status: 401, description: 'Authentication error', schema: { example: errorExamples.unauthorized } })
-  @ApiResponse({ status: 429, description: 'Rate limit exceeded', schema: { example: errorExamples.tooManyRequests } })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
-  me(@CurrentUser() user: any) {
+  @ApiResponse({
+    status: 401,
+    description: 'Authentication error',
+    schema: { example: errorExamples.unauthorized },
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Rate limit exceeded',
+    schema: { example: errorExamples.tooManyRequests },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
+  me(@CurrentUser() user: JwtUser) {
     return { data: user };
   }
 
@@ -81,8 +111,16 @@ export class UserController {
   @Cacheable(60) // Cache for 60 seconds. Key: users:<id>
   @ApiParam({ name: 'id', example: '8a76aee9-0785-48c6-8b64-a3aa55189dfb' })
   @ApiResponse({ status: 200, description: 'User by ID', type: UserResponseDto })
-  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
@@ -101,9 +139,21 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 200, description: 'User updated', type: UserResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error', schema: { example: errorExamples.badRequest } })
-  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+    schema: { example: errorExamples.badRequest },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() user?: JwtUser) {
     return this.userService.update(id, dto, user?.id);
   }
@@ -114,11 +164,31 @@ export class UserController {
   @Roles('ADMIN')
   @ApiBearerAuth('bearer')
   @ApiParam({ name: 'id', example: '8a76aee9-0785-48c6-8b64-a3aa55189dfb' })
-  @ApiResponse({ status: 200, description: 'User deleted', schema: { example: { data: { deleted: true } } } })
-  @ApiResponse({ status: 401, description: 'Authentication error', schema: { example: errorExamples.unauthorized } })
-  @ApiResponse({ status: 403, description: 'Admin role required', schema: { example: errorExamples.forbidden } })
-  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted',
+    schema: { example: { data: { deleted: true } } },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Authentication error',
+    schema: { example: errorExamples.unauthorized },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Admin role required',
+    schema: { example: errorExamples.forbidden },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
   async remove(@Param('id') id: string) {
     await this.userService.remove(id);
     return { data: { deleted: true } };
@@ -131,10 +201,26 @@ export class UserController {
   @ApiBearerAuth('bearer')
   @ApiParam({ name: 'id', example: '8a76aee9-0785-48c6-8b64-a3aa55189dfb' })
   @ApiResponse({ status: 200, description: 'User restored', type: UserResponseDto })
-  @ApiResponse({ status: 401, description: 'Authentication error', schema: { example: errorExamples.unauthorized } })
-  @ApiResponse({ status: 403, description: 'Admin role required', schema: { example: errorExamples.forbidden } })
-  @ApiResponse({ status: 404, description: 'User not found', schema: { example: errorExamples.notFound } })
-  @ApiResponse({ status: 500, description: 'Internal server error', schema: { example: errorExamples.internal } })
+  @ApiResponse({
+    status: 401,
+    description: 'Authentication error',
+    schema: { example: errorExamples.unauthorized },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Admin role required',
+    schema: { example: errorExamples.forbidden },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: { example: errorExamples.internal },
+  })
   restore(@Param('id') id: string) {
     return this.userService.restore(id);
   }

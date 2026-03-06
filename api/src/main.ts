@@ -51,7 +51,12 @@ async function bootstrap(): Promise<void> {
       throw new Error('SWAGGER_USER / SWAGGER_PASSWORD missing in production');
     }
 
-    await protectSwaggerWithBasicAuth({ app, username: swaggerUser, password: swaggerPass, docsPath });
+    await protectSwaggerWithBasicAuth({
+      app,
+      username: swaggerUser,
+      password: swaggerPass,
+      docsPath,
+    });
   }
 
   await app.listen(3000, '0.0.0.0');

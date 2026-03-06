@@ -6,37 +6,38 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserService } from '../user/user.service';
 import { AuthenticationError, BusinessRuleError } from '@/common/exceptions';
+import { CreateUserDto } from '../user/dto/create-user.dto.js';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        private readonly userService: UserService,
-        @Inject(JWT_SERVICE) private readonly jwtService: jwt.IJwtService,
-    ) { }
+  constructor(
+    private readonly userService: UserService,
+    @Inject(JWT_SERVICE) private readonly jwtService: jwt.IJwtService,
+  ) {}
 
-    async register(dto: RegisterDto) {
-        const existing = await this.userService.findByEmail(dto.email);
-        if (existing) throw new BusinessRuleError('Email already in use');
+  async register(dto: RegisterDto) {
+    const existing = await this.userService.findByEmail(dto.email);
+    if (existing) throw new BusinessRuleError('Email already in use');
 
-        const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 10);
 
-        const created = await this.userService.create({
-            ...dto,
-            password: passwordHash,
-        } as any);
+    const created = await this.userService.create({
+      ...dto,
+      password: passwordHash,
+    } as CreateUserDto);
 
-        return { data: created };
-    }
+    return { data: created };
+  }
 
-    async login(dto: LoginDto) {
-        const user = await this.userService.findAuthByEmail(dto.email);
-        if (!user) throw new AuthenticationError('Invalid credentials');
+  async login(dto: LoginDto) {
+    const user = await this.userService.findAuthByEmail(dto.email);
+    if (!user) throw new AuthenticationError('Invalid credentials');
 
-        const ok = await bcrypt.compare(dto.password, user.password);
-        if (!ok) throw new AuthenticationError('Invalid credentials');
+    const ok = await bcrypt.compare(dto.password, user.password);
+    if (!ok) throw new AuthenticationError('Invalid credentials');
 
-        const accessToken = await this.jwtService.signAccessToken({ sub: user.id });
+    const accessToken = await this.jwtService.signAccessToken({ sub: user.id });
 
-        return { data: { accessToken } };
-    }
+    return { data: { accessToken } };
+  }
 }

@@ -13,7 +13,7 @@ export class UserService {
     @Inject('USER_REPOSITORY')
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBusService,
-  ) { }
+  ) {}
 
   async create(dto: CreateUserDto, performedBy = 'system') {
     const created = await this.userRepository.withTransaction(async () => {

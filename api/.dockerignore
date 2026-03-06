@@ -1,0 +1,15 @@
+node_modules
+dist
+.drizzle
+uploads
+test
+coverage
+.git
+.gitignore
+.vscode
+.idea
+.husky
+*.log
+.env
+.env.*
+README.md

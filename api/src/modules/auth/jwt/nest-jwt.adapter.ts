@@ -4,9 +4,9 @@ import { IJwtService } from './jwt-service.interface';
 
 @Injectable()
 export class NestJwtServiceAdapter implements IJwtService {
-    constructor(private readonly jwt: JwtService) { }
+  constructor(private readonly jwt: JwtService) {}
 
-    signAccessToken(payload: { sub: string }) {
-        return this.jwt.signAsync(payload);
-    }
+  signAccessToken(payload: { sub: string }) {
+    return this.jwt.signAsync(payload);
+  }
 }

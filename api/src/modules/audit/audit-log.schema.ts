@@ -6,26 +6,26 @@ export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
 
 @Schema({ collection: 'audit_logs', timestamps: false })
 export class AuditLog {
-    @Prop({ type: String, required: true, enum: ['CREATE', 'UPDATE', 'DELETE'] })
-    action!: AuditAction;
+  @Prop({ type: String, required: true, enum: ['CREATE', 'UPDATE', 'DELETE'] })
+  action!: AuditAction;
 
-    @Prop({ type: String, required: true })
-    entity!: string;
+  @Prop({ type: String, required: true })
+  entity!: string;
 
-    @Prop({ type: String, required: true })
-    entityId!: string;
+  @Prop({ type: String, required: true })
+  entityId!: string;
 
-    @Prop({ type: Object, required: false, default: null })
-    oldData!: Record<string, unknown> | null;
+  @Prop({ type: Object, required: false, default: null })
+  oldData!: Record<string, unknown> | null;
 
-    @Prop({ type: Object, required: false, default: null })
-    newData!: Record<string, unknown> | null;
+  @Prop({ type: Object, required: false, default: null })
+  newData!: Record<string, unknown> | null;
 
-    @Prop({ type: String, required: true })
-    performedBy!: string;
+  @Prop({ type: String, required: true })
+  performedBy!: string;
 
-    @Prop({ type: Date, required: true })
-    timestamp!: Date;
+  @Prop({ type: Date, required: true })
+  timestamp!: Date;
 }
 
 export const AuditLogSchema = SchemaFactory.createForClass(AuditLog);

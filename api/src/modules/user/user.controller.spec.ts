@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
+import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 const mockUserService = {
   create: jest.fn(),
@@ -18,16 +21,13 @@ describe('UserController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [
-        { provide: UserService, useValue: mockUserService },
-        Reflector,
-      ],
+      providers: [{ provide: UserService, useValue: mockUserService }, Reflector],
     })
-      .overrideGuard(require('../auth/jwt/jwt.guard').JwtAuthGuard)
+      .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
-      .overrideGuard(require('../auth/guards/roles.guard').RolesGuard)
+      .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
-      .overrideGuard(require('../../common/guards/rate-limit.guard').RateLimitGuard)
+      .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

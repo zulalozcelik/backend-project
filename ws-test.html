@@ -3,42 +3,167 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>WS Test</title>
+    <title>WS Test — AI Processing</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 16px;
+            background: #1a1a1a;
+            color: #d4d4d4;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            background: #2d2d2d;
+            color: #d4d4d4;
+            border: 1px solid #444;
+            padding: 6px;
+            margin-bottom: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-right: 8px;
+            cursor: pointer;
+            background: #0e7a0d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: default;
+        }
+
+        #log {
+            background: #111;
+            padding: 12px;
+            height: 320px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+        }
+
+        .ok {
+            color: #4ec9b0;
+        }
+
+        .err {
+            color: #f44747;
+        }
+
+        .ai {
+            color: #dcdcaa;
+        }
+
+        .sys {
+            color: #569cd6;
+        }
+    </style>
 </head>
 
 <body>
-    <h3>WebSocket Test</h3>
+    <h3>WebSocket Test — AI Processing</h3>
+
+    <label>JWT Token (sadece token, Bearer yazmadan):</label>
+    <input id="token" type="text" placeholder="eyJhbGci..." />
+
+    <label>Document ID:</label>
+    <input id="docId" type="text" value="123" />
+
+    <label>Text (AI işlenecek metin):</label>
+    <textarea id="text" rows="3">hello world</textarea>
+
+    <div>
+        <button id="btnConnect" onclick="connect()">🔌 Bağlan</button>
+        <button id="btnSend" onclick="sendToAI()" disabled>🚀 AI Process</button>
+        <button onclick="clearLog()">🧹 Temizle</button>
+    </div>
+    <br />
     <pre id="log"></pre>
 
     <script>
-        const logEl = document.getElementById("log");
-        const log = (m) => (logEl.textContent += m + "\n");
+        let socket = null;
+        const logEl = document.getElementById('log');
 
-        const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3N2JlYmJjYi0xOGFmLTRmZmEtOWY1NC1lZjU5NjU0ZWI2MjIiLCJpYXQiOjE3NzIxODM4NjksImV4cCI6MTc3MjE4NDc2OX0.kr9wRG2vWArkg7IKAOvGlPW1ffWjnudPfU2CKmS9NnU";
-        const DOCUMENT_ID = "123";
+        function log(msg, cls = '') {
+            const line = document.createElement('span');
+            line.className = cls;
+            line.textContent = new Date().toLocaleTimeString() + '  ' + msg + '\n';
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        function clearLog() { logEl.innerHTML = ''; }
 
-        const socket = io("http://localhost:3000", {
-            auth: { token: TOKEN }
-        });
+        function connect() {
+            const token = document.getElementById('token').value.trim();
+            const docId = document.getElementById('docId').value.trim();
 
-        socket.on("connect", () => {
-            log("connected: " + socket.id);
-            socket.emit("join-document", DOCUMENT_ID);
-            log("joined room: document:" + DOCUMENT_ID);
-        });
+            if (!token) { alert('Token gir!'); return; }
+            if (socket) { socket.disconnect(); }
 
-        socket.on("connect_error", (err) => {
-            log("connect_error: " + err.message);
-        });
+            log('Bağlanıyor...', 'sys');
+            socket = io('http://localhost:3000', { auth: { token } });
 
-        socket.on("disconnect", (reason) => {
-            log("disconnected: " + reason);
-        });
+            socket.on('connect', () => {
+                log('✅ Bağlandı: ' + socket.id, 'ok');
+                socket.emit('join-document', docId);
+                log('📎 Room\'a katıldı: document:' + docId, 'sys');
+                document.getElementById('btnSend').disabled = false;
+            });
 
-        socket.on("document-updated", (data) => {
-            log("document-updated: " + JSON.stringify(data));
-        });
+            socket.on('connect_error', (err) => {
+                log('❌ Bağlantı hatası: ' + err.message, 'err');
+            });
+
+            socket.on('disconnect', (reason) => {
+                log('⚡ Bağlantı kesildi: ' + reason, 'err');
+                document.getElementById('btnSend').disabled = true;
+            });
+
+            // ─── AI Processing Events ───────────────────────────
+            socket.on('ai-processing-completed', (data) => {
+                log('✨ ai-processing-completed:\n' + JSON.stringify(data, null, 2), 'ai');
+            });
+
+            socket.on('ai-processing-failed', (data) => {
+                log('💥 ai-processing-failed:\n' + JSON.stringify(data, null, 2), 'err');
+            });
+
+            // önceki broadcast testi
+            socket.on('document-updated', (data) => {
+                log('📄 document-updated: ' + JSON.stringify(data), 'ok');
+            });
+        }
+
+        async function sendToAI() {
+            const token = document.getElementById('token').value.trim();
+            const docId = document.getElementById('docId').value.trim();
+            const text = document.getElementById('text').value.trim();
+
+            log('📤 POST /documents/' + docId + '/ai/process ...', 'sys');
+            try {
+                const res = await fetch('http://localhost:3000/documents/' + docId + '/ai/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                    },
+                    body: JSON.stringify({ text }),
+                });
+                const json = await res.json();
+                log('📥 HTTP ' + res.status + ': ' + JSON.stringify(json), res.ok ? 'ok' : 'err');
+                if (res.ok) {
+                    log('⏳ WebSocket event bekleniyor...', 'sys');
+                }
+            } catch (e) {
+                log('❌ Fetch hatası: ' + e.message, 'err');
+            }
+        }
     </script>
 </body>
 

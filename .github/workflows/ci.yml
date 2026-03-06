@@ -1,9 +1,6 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - "**"
+on: [push]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -12,61 +9,30 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: api
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: api/.node-version
           cache: pnpm
           cache-dependency-path: api/pnpm-lock.yaml
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Get pnpm store path
-        id: pnpm-store
-        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('api/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: api/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('api/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Build
-        run: pnpm build
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
 
       - name: Gitleaks
         if: always()
         uses: gitleaks/gitleaks-action@v2
         with:
-          args: detect --redact --verbose
+          args: detect --redact

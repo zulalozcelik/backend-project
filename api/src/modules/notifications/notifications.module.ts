@@ -4,7 +4,7 @@ import { EventsModule } from '../../common/events/events.module';
 import { LoggingModule } from '../../common/logging/logging.module';
 
 @Module({
-    imports: [EventsModule, LoggingModule],
-    providers: [WelcomeEmailSubscriber],
+  imports: [EventsModule, LoggingModule],
+  providers: [WelcomeEmailSubscriber],
 })
-export class NotificationsModule { }
+export class NotificationsModule {}

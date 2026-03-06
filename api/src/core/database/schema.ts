@@ -1,11 +1,8 @@
 import { pgTable, uuid, varchar, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import { Role } from '../../modules/user/domain/enums/role.enum';
+export { tasks } from './schema/tasks.table';
 
-export const userRoleEnum = pgEnum('user_role', [
-  Role.ADMIN,
-  Role.USER,
-  Role.MODERATOR,
-]);
+export const userRoleEnum = pgEnum('user_role', [Role.ADMIN, Role.USER, Role.MODERATOR]);
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),

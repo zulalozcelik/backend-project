@@ -20,6 +20,11 @@ import { DummyUserMiddleware } from './common/middleware/dummy-user.middleware';
 import { QueueModule } from './queue/queue.module';
 import { ReportModule } from './modules/report/report.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { AiModule } from './core/ai/ai.module';
+import { AiProcessingModule } from './modules/ai-processing/ai-processing.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 
 @Module({
   imports: [
@@ -42,14 +47,17 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     QueueModule,
     ReportModule,
     RealtimeModule,
+    AiModule,
+    AiProcessingModule,
+    ScheduleModule.forRoot(),
+    TasksModule,
+    MaintenanceModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(RequestIdMiddleware, DummyUserMiddleware)
-      .forRoutes('*');
+    consumer.apply(RequestIdMiddleware, DummyUserMiddleware).forRoutes('*');
   }
 }

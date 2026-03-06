@@ -3,7 +3,7 @@ import { TestController } from './test.controller';
 import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-    imports: [RealtimeModule],
-    controllers: [TestController],
+  imports: [RealtimeModule],
+  controllers: [TestController],
 })
-export class TestModule { }
+export class TestModule {}

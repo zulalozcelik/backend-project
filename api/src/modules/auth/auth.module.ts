@@ -14,26 +14,26 @@ import { NestJwtServiceAdapter } from './jwt/nest-jwt.adapter';
 import { JWT_SERVICE } from './auth.constants';
 
 @Module({
-    imports: [
-        UserModule,
-        PassportModule,
-        JwtModule.registerAsync({
-            inject: [ConfigService],
-            useFactory: (config: ConfigService) => ({
-                secret: config.getOrThrow<string>('JWT_SECRET'),
-                signOptions: {
-                    expiresIn: config.getOrThrow<string>('JWT_EXPIRES_IN') as StringValue,
-                },
-            }),
-        }),
-    ],
-    controllers: [AuthController],
-    providers: [
-        AuthService,
-        JwtStrategy,
-        RolesGuard,
-        { provide: JWT_SERVICE, useClass: NestJwtServiceAdapter },
-    ],
-    exports: [AuthService, RolesGuard],
+  imports: [
+    UserModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: config.getOrThrow<string>('JWT_EXPIRES_IN') as StringValue,
+        },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    RolesGuard,
+    { provide: JWT_SERVICE, useClass: NestJwtServiceAdapter },
+  ],
+  exports: [AuthService, RolesGuard],
 })
-export class AuthModule { }
+export class AuthModule {}

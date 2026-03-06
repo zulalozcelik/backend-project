@@ -8,14 +8,11 @@ import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { LoggingModule } from '../../common/logging/logging.module';
 
 @Module({
-    imports: [
-        LoggingModule,
-        BullModule.registerQueue(
-            { name: REPORT_GENERATION_QUEUE },
-            { name: DEAD_LETTER_QUEUE },
-        ),
-    ],
-    controllers: [ReportController],
-    providers: [ReportService, ReportProcessor, RateLimitGuard],
+  imports: [
+    LoggingModule,
+    BullModule.registerQueue({ name: REPORT_GENERATION_QUEUE }, { name: DEAD_LETTER_QUEUE }),
+  ],
+  controllers: [ReportController],
+  providers: [ReportService, ReportProcessor, RateLimitGuard],
 })
-export class ReportModule { }
+export class ReportModule {}
